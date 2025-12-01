@@ -45,30 +45,27 @@
   ],
 
   "FS_DEPARTMENT_NAME_MAP": {
-    "16000147005": "Customer Service",
-    "16000147007": "eBusiness",
-    "16000084380": "Finance",
-    "16000084381": "Human Resources",
-    "16000084383": "Information Technology",
-    "16000147019": "Marketing",
-    "16000160010": "National Oak",
-    "16000160011": "NOD Helpdesk",
-    "16000084382": "Operations",
-    "16000147009": "Property Management",
-    "16000084378": "Sales",
-    "16000084377": "Special Projects",
-    "16000084379": "Supply Chain"
+    "1001": "Customer Service",
+    "1002": "E-Business",
+    "1003": "Finance",
+    "1004": "Human Resources",
+    "1005": "Information Technology",
+    "1006": "Marketing",
+    "1007": "Operations",
+    "1008": "Property Management",
+    "1009": "Sales",
+    "1010": "Special Projects",
+    "1011": "Supply Chain"
   },
 
   "CATEGORY_AGENT_MAP": {
-    "Masterpack": "5fd8dc67692b7901103cb067",
-    "Ecommerce-ISN": "5b718cf1e4f3ba654e19d337",
-    "Product Data–ISN": "712020:96f44b2e-14c0-4bd2-8a88-7dc5409e4e28",
-    "HighJump-WMS": "712020:844af4bf-3c7e-4e1f-a787-490528be1dc9",
-    "EDI-ISN": "606da95096e8d60068ce973a",
-    "Perfection": "5c78411ce73ff94648763b5a",
-    "EZ Garage": "5fac399a42ab3b006eba36e3",
-    "default": "5b718cf1e4f3ba654e19d337"
+    "Ecommerce": "agent-id-1",
+    "Product Data": "agent-id-2",
+    "Warehouse": "agent-id-3",
+    "EDI": "agent-id-4",
+    "Support": "agent-id-5",
+    "Field Service": "agent-id-6",
+    "default": "agent-id-default"
   },
 
   "FS_STATUS_NAME_MAP":   {

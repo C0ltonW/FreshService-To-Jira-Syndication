@@ -141,6 +141,15 @@ Attachments:
 
 ---
 
+## Setup & Configuration
+
+- Copy settings/settings.env.txt to settings/settings.env and fill in your own values:
+  - FRESHSERVICE_DOMAIN, FRESHSERVICE_API_KEY
+  - JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN, JIRA_PROJECT_KEY, JIRA_ISSUE_TYPE_ID, JIRA_BOARD_ID
+  - Behavior flags like IS_TEST, SYNC_ALWAYS_CREATE, CUTOFF_PERIOD, AGENTS_TO_SYNC
+- Review settings/mappings.json and customize placeholder values to match your environment (department IDs/names, category-to-agent mappings, status/priority names, Jira customfield IDs, etc.). The file in this repo contains only generic example values.
+- The repo includes a .gitignore that excludes settings/settings.env and other local files. Do not commit real credentials.
+
 ## Project structure
 
 ```

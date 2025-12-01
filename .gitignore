@@ -1,4 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
 .venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local environment secrets (do not commit real credentials)
 settings/settings.env
-.idea
-.gitattributes
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
