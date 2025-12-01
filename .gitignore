@@ -1,0 +1,4 @@
+.venv/
+settings/settings.env
+.idea
+.gitattributes

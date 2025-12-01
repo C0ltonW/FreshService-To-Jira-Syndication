@@ -1,0 +1,132 @@
+{
+  "FRIENDLY_LABELS": {
+    "id": "Ticket Number",
+    "subject": "Subject",
+    "description": "Description",
+    "priority": "Priority",
+    "status": "Status",
+    "source": "Source",
+    "type": "Type",
+    "urgency": "Urgency",
+    "impact": "Impact",
+    "group_id": "Group",
+    "department_id": "Department",
+    "category": "Category",
+    "sub_category": "Sub-Category",
+    "location": "Location",
+    "requester_id": "Requester ID",
+    "requester.name": "Requestor",
+    "requester.phone": "Requestor's Contact Number",
+    "requester.location": "Requestor Location"
+  },
+
+  "FIELD_REF_BY_LOGICAL": {
+    "fs_ticket_number": "Freshservice Ticket #",
+    "fs_status": "Freshservice Status",
+    "source": "Source",
+    "fs_ticket_type": "Freshservice Ticket Type",
+    "urgency": "Urgency",
+    "impact": "Impact",
+    "group": "Group",
+    "department": "Department",
+    "ticket_category": "Ticket Category",
+    "ticket_subcategory": "Ticket Subcategory",
+    "business_requestor": "Business Requestor",
+    "requestor_phone": "Requestor's Phone Number",
+    "location_ticket": "Location - Ticket",
+    "user_assigned_category": "User assigned category",
+    "user_assigned_subcategory": "User assigned subcategory"
+  },
+
+  "DEFAULT_SUPPRESS_KEYS": [
+    "id", "description", "priority", "status", "source", "type", "urgency", "impact",
+    "group_id", "department_id", "category", "sub_category", "location",
+    "requester.name", "requester.phone", "requester.location"
+  ],
+
+  "FS_DEPARTMENT_NAME_MAP": {
+    "16000147005": "Customer Service",
+    "16000147007": "eBusiness",
+    "16000084380": "Finance",
+    "16000084381": "Human Resources",
+    "16000084383": "Information Technology",
+    "16000147019": "Marketing",
+    "16000160010": "National Oak",
+    "16000160011": "NOD Helpdesk",
+    "16000084382": "Operations",
+    "16000147009": "Property Management",
+    "16000084378": "Sales",
+    "16000084377": "Special Projects",
+    "16000084379": "Supply Chain"
+  },
+
+  "CATEGORY_AGENT_MAP": {
+    "Masterpack": "5fd8dc67692b7901103cb067",
+    "Ecommerce-ISN": "5b718cf1e4f3ba654e19d337",
+    "Product Data–ISN": "712020:96f44b2e-14c0-4bd2-8a88-7dc5409e4e28",
+    "HighJump-WMS": "712020:844af4bf-3c7e-4e1f-a787-490528be1dc9",
+    "EDI-ISN": "606da95096e8d60068ce973a",
+    "Perfection": "5c78411ce73ff94648763b5a",
+    "EZ Garage": "5fac399a42ab3b006eba36e3",
+    "default": "5b718cf1e4f3ba654e19d337"
+  },
+
+  "FS_STATUS_NAME_MAP":   {
+    "2": "Open",
+    "3": "Pending",
+    "4": "Resolved",
+    "5": "Closed"
+  },
+
+  "FS_URGENCY_NAME_MAP":  {
+    "1": "Low",
+    "2": "Medium",
+    "3": "High"
+  },
+
+  "FS_IMPACT_NAME_MAP":   {
+    "1": "Low",
+    "2": "Medium",
+    "3": "High"
+  },
+
+  "FS_SOURCE_NAME_MAP":   {
+    "1": "Email",
+    "2": "Portal",
+    "3": "Phone",
+    "7": "Chat",
+    "10": "Outbound Email"
+  },
+
+  "STATUS_TARGET": {
+    "2": "To Do",
+    "3": "In Progress",
+    "4": "Done",
+    "5": "Done"
+  },
+
+  "PRIORITY_MAP":  {
+    "1": "Low",
+    "2": "Medium",
+    "3": "High",
+    "4": "Highest"
+  },
+
+  "JIRA_FIELDS": {
+    "fs_ticket_number": "customfield_10512",
+    "fs_status":        "customfield_10610",
+    "source":           "customfield_10744",
+    "fs_ticket_type":   "customfield_10611",
+    "urgency":          "customfield_10742",
+    "impact":           "customfield_10743",
+    "group":            "customfield_10745",
+    "department":       "customfield_10585",
+    "ticket_category":  "customfield_10581",
+    "ticket_subcategory":"customfield_10643",
+    "business_requestor":"customfield_10516",
+    "requestor_phone":  "customfield_10582",
+    "location_ticket":  "customfield_10583",
+    "user_assigned_category":    "customfield_10580",
+    "user_assigned_subcategory": "customfield_10709"
+  }
+}
