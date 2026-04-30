@@ -342,46 +342,6 @@ class FreshserviceClient:
         # If both attempts failed, re-raise the last error so callers can see the cause
         raise last_err if last_err else RuntimeError("Unable to fetch Freshservice ticket fields")
 
-    def get_category_tree(self) -> dict[str, set[str]]:
-        """
-        Build a Category -> { Subcategory, ... } mapping from the dependent 'Category' field.
-        This looks for the field whose 'name' is 'category' (or label 'Category'), then walks
-        'choices'/'nested_options' to produce a two-level map.
-
-        Returns
-        """
-        fields = self.get_ticket_fields()
-
-        def _label_of(option: dict) -> str:
-            # tolerate variations: 'label' is typical; fall back to 'value'/'name'
-            return (option.get("label")
-                    or option.get("value")
-                    or option.get("name")
-                    or "").strip()
-
-        category_field: dict | None = None
-        for f in fields:
-            name = (f.get("name") or "").lower()
-            label = (f.get("label") or f.get("label_for_customers") or "").strip().lower()
-            if name == "category" or label == "category":
-                category_field = f
-                break
-
-        if not category_field:
-            return {}
-
-        categories = {}
-        for top in category_field.get("choices", []):
-            cat_name = _label_of(top)
-            if not cat_name:
-                continue
-            subs: set[str] = set()
-            for sub in (top.get("nested_options") or []):
-                sub_name = _label_of(sub)
-                if sub_name:
-                    subs.add(sub_name)
-            categories[cat_name] = subs
-        return categories
 
     # --- Agents --- #
     def get_all_agents(self,
