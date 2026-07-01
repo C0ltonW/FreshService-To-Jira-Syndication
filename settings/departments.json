@@ -1,0 +1,70 @@
+{
+  "departments": [
+    {
+      "dept_id": "wms",
+      "name": "WMS (HighJump)",
+      "agent_ids": [1234567890],
+      "jira_project_key": "FRE",
+      "jira_issue_type_id": "10004",
+      "jira_board_id": 418,
+      "jira_default_status": "Backlog",
+      "enabled": true,
+      "sync_comments": true,
+      "sync_attachments": true,
+      "assignment_map": {
+        "Ecommerce": {
+          "default": "agent-id-1"
+        },
+        "Product Data": {
+          "default": "agent-id-2"
+        },
+        "Warehouse": {
+          "default": "agent-id-3"
+        },
+        "EDI": {
+          "default": "agent-id-4"
+        },
+        "Support": {
+          "default": "agent-id-5"
+        },
+        "Field Service": {
+          "default": "agent-id-6"
+        }
+      },
+      "status_sync_map": {}
+    },
+    {
+      "dept_id": "fpna",
+      "name": "FP&A",
+      "agent_ids": [],
+      "jira_project_key": "FPA",
+      "jira_issue_type_id": "10001",
+      "jira_board_id": 682,
+      "jira_default_status": "Backlog",
+      "enabled": true,
+      "sync_comments": true,
+      "sync_attachments": true,
+      "assignment_map": {
+        "FP&A": {
+          "Access Required": "varun@example.com",
+          "Dashboard Not Updating": "varun@example.com",
+          "New Report Request": "casey.derringer@example.com",
+          "Other PowerBI Issue (Please Specify)": "casey.derringer@example.com",
+          "SSRS Report Issue": "casey.derringer@example.com",
+          "SSIS Issue": "varun@example.com",
+          "Freedom Program - Smartsheet": "varun@example.com",
+          "Customer Rebate (CGI or Other)": "varun@example.com",
+          "Account Salesperson Assignment": "varun@example.com",
+          "Update to Manager Hierarchy": "varun@example.com",
+          "Report Issue": "casey.derringer@example.com",
+          "New Report Request": "casey.derringer@example.com",
+          "Other (Please Specify)": "casey.derringer@example.com",
+          "default": "casey.derringer@example.com"
+        }
+      },
+      "status_sync_map": {
+        "Done": "4"
+      }
+    }
+  ]
+}

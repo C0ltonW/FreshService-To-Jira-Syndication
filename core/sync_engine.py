@@ -22,11 +22,20 @@ logger = logging.getLogger(__name__)
 
 class SyncEngine:
     """Main orchestration class for syncing Freshservice tickets to Jira."""
-    def __init__(self, fresh: FreshserviceClient, jira: JiraClient, settings):
-        """Initialize the sync engine with a Freshservice and Jira client."""
+    def __init__(self, fresh: FreshserviceClient, jira: JiraClient, settings, department=None):
+        """
+        Initialize the sync engine with a Freshservice and Jira client.
+
+        Args:
+            fresh: FreshserviceClient instance
+            jira: JiraClient instance
+            settings: Settings instance
+            department: Optional DepartmentConfig for department-specific behavior
+        """
         self.fresh = fresh
         self.jira = jira
         self.settings = settings
+        self.department = department
 
         # Build mapping from JSON
         self.mapping: Mapping = mapping_from_settings(settings)
@@ -53,8 +62,11 @@ class SyncEngine:
         fs_value = str(fs_ticket_id)
         selector = self._field_selector_for_jql("fs_ticket_number")
 
+        # Use department-specific project if available, otherwise fall back to settings
+        project_key = self.department.jira_project_key if self.department else self.settings.jira_project_key
+
         jql = (
-            f'project = "{self.settings.jira_project_key}" '
+            f'project = "{project_key}" '
             f'AND {selector} ~ "{fs_value}" ORDER BY created DESC'
         )
         issues = self._jql(jql, max_results=1)
@@ -62,7 +74,7 @@ class SyncEngine:
             return issues[0].get("key")
 
         jql = (
-            f'project = "{self.settings.jira_project_key}" '
+            f'project = "{project_key}" '
             f'AND summary ~ "[FS-{fs_value}]" ORDER BY created DESC'
         )
         issues = self._jql(jql, max_results=1)
@@ -253,13 +265,18 @@ class SyncEngine:
     # --- Field payload builder --- #
     def _build_fields(self, t: FreshTicket) -> Dict[str, Any]:
         """Build the fields payload for the given Freshservice ticket."""
+        # Use department-specific settings if available, otherwise fall back to global settings
+        project_key = self.department.jira_project_key if self.department else self.settings.jira_project_key
+        issue_type_id = self.department.jira_issue_type_id if self.department else self.settings.jira_issue_type_id
+
         return build_fields_core(
             mapping=self.mapping,
             resolved_ids=self._resolved_ids,
             jira_client=self.jira,
             t=t,
-            project_key=self.settings.jira_project_key,
-            issue_type_id=self.settings.jira_issue_type_id,
+            project_key=project_key,
+            issue_type_id=issue_type_id,
+            department=self.department,
         )
 
 
@@ -374,8 +391,9 @@ class SyncEngine:
                 issue_key, "fs_meta", {"fs_ticket_id": str(fs_id), "last_conversation_id": None}
             )
 
-            # Move newly created issue to 'Backlog' status
-            self._transition_to_status(issue_key, settings.jira_status)
+            # Move newly created issue to default status (department-specific or global)
+            default_status = self.department.jira_default_status if self.department else settings.jira_status
+            self._transition_to_status(issue_key, default_status)
 
         # Comment sync after issue creation/update
         self._sync_ticket_attachments(t_for_fields, issue_key)

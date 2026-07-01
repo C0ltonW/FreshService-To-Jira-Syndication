@@ -3,6 +3,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 import json
 from typing import Optional, Dict, List, Set
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Settings(BaseSettings):
     """
@@ -33,6 +37,7 @@ class Settings(BaseSettings):
 
     # --- Where to read mappings from ---
     mappings_path: str = "./settings/mappings.json"
+    departments_path: str = "./settings/departments.json"
 
     # --- Loaded from mappings.json ---
     FRIENDLY_LABELS: Dict[str, str] = {}
@@ -89,5 +94,33 @@ class Settings(BaseSettings):
 
         # Jira field references
         self.JIRA_FIELDS = data.get("JIRA_FIELDS", {})
+
+    def load_departments(self) -> List[Dict]:
+        """
+        Load department configurations from departments.json.
+
+        Returns:
+            List of department configuration dictionaries
+        """
+        path = Path(self.departments_path)
+        if not path.exists():
+            logger.warning(
+                "Department configuration file not found at %s. "
+                "Multi-department mode will not be available.",
+                path
+            )
+            return []
+
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            departments = data.get("departments", [])
+            logger.info("Loaded %d department configuration(s) from %s", len(departments), path)
+            return departments
+        except Exception as e:
+            logger.error("Failed to load department configurations from %s: %s", path, e)
+            return []
+
 
 settings = Settings()

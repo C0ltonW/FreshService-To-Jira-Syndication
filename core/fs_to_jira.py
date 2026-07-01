@@ -214,7 +214,7 @@ def render_ticket_details_comment(t: FreshTicket, mapping: Mapping) -> Optional[
 
 # --- Issue fields payload --- #
 def build_issue_fields(mapping: Mapping, resolved_ids: Dict[str, str], jira_client, t: FreshTicket,
-                       project_key: str, issue_type_id: str) -> Dict[str, Any]:
+                       project_key: str, issue_type_id: str, department=None) -> Dict[str, Any]:
     """
     Build Jira issue fields payload from FreshService ticket.
 
@@ -222,6 +222,7 @@ def build_issue_fields(mapping: Mapping, resolved_ids: Dict[str, str], jira_clie
     - Resolves custom fields.
     - handles fallback and enrichment from requester.
     - Ues Createmeta to validate allowed values.
+    - Supports department-specific assignment routing
     """
 
     def _safe(v):
@@ -272,8 +273,17 @@ def build_issue_fields(mapping: Mapping, resolved_ids: Dict[str, str], jira_clie
         "description": jira_client._to_adf(desc_text),
     }
 
-    # Assignee hint via category/subcategory mapping
-    assignee_hint = resolve_assignee_by_category_sub(mapping, cat, sub)
+    # Assignee routing: use department-specific map if available, otherwise fall back to global mapping
+    assignee_hint = None
+    if department and hasattr(department, 'get_assignee'):
+        assignee_hint = department.get_assignee(cat, sub)
+        if assignee_hint:
+            logger.info("FS-%s: Using department-specific assignee routing: %s → %s", t.id, f"{cat}/{sub}", assignee_hint)
+
+    # Fallback to global mapping if no department-specific match
+    if not assignee_hint:
+        assignee_hint = resolve_assignee_by_category_sub(mapping, cat, sub)
+
     acct_id = jira_client.get_account_id(assignee_hint) if assignee_hint else None
     if acct_id:
         fields["assignee"] = {"accountId": acct_id}
