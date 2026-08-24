@@ -24,7 +24,7 @@ def _build_session(email: str, api_token: str) -> requests.Session:
     Returns:
         requests.Session
     """
-    s = requests.Session()
+    js = requests.Session()
     retry = Retry(
         total=5,
         backoff_factor=0.5,
@@ -32,11 +32,11 @@ def _build_session(email: str, api_token: str) -> requests.Session:
         allowed_methods={"GET", "POST", "PUT", "PATCH", "DELETE"},
         raise_on_status=False,
     )
-    s.mount("https://", HTTPAdapter(max_retries=retry))
-    s.mount("http://", HTTPAdapter(max_retries=retry))
-    s.headers.update({"Accept": "application/json"})
-    s.auth = (email, api_token)
-    return s
+    js.mount("https://", HTTPAdapter(max_retries=retry))
+    js.mount("http://", HTTPAdapter(max_retries=retry))
+    js.headers.update({"Accept": "application/json"})
+    js.auth = (email, api_token)
+    return js
 
 
 def _looks_like_account_id(s: str) -> bool:

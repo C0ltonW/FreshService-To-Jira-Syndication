@@ -28,7 +28,7 @@ def _build_session(api_key: str) -> requests.Session:
     Args: api_key (str): FreshService API key
     Returns: requests.Session
     """
-    s = requests.Session()
+    fs = requests.Session()
     retry = Retry(
         total=5,
         backoff_factor=0.5,
@@ -36,14 +36,14 @@ def _build_session(api_key: str) -> requests.Session:
         allowed_methods={"GET", "POST", "PUT", "PATCH", "DELETE"},
         raise_on_status=False,
     )
-    s.mount("https://", HTTPAdapter(max_retries=retry))
-    s.mount("http://", HTTPAdapter(max_retries=retry))
-    s.headers.update({
+    fs.mount("https://", HTTPAdapter(max_retries=retry))
+    fs.mount("http://", HTTPAdapter(max_retries=retry))
+    fs.headers.update({
         "Accept": "application/json",
         "Content-Type": "application/json",
     })
-    s.auth = (api_key, "X")
-    return s
+    fs.auth = (api_key, "X")
+    return fs
 
 
 class FreshserviceClient:
