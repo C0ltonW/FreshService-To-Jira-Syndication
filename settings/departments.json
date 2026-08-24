@@ -44,7 +44,7 @@
     {
       "dept_id": "wms",
       "name": "WMS (HighJump)",
-      "agent_ids": [1234567890],
+      "agent_ids": [16004400953],
       "jira_project_key": "FRE",
       "jira_issue_type_id": "10004",
       "jira_board_id": 418,
@@ -54,22 +54,22 @@
       "sync_attachments": true,
       "assignment_map": {
         "Ecommerce": {
-          "default": "agent-id-1"
+          "default": "kkakaraparthy@nationaloak.com"
         },
         "Product Data": {
-          "default": "agent-id-2"
+          "default": "kkakaraparthy@nationaloak.com"
         },
         "Warehouse": {
-          "default": "agent-id-3"
+          "default": "kkakaraparthy@nationaloak.com"
         },
         "EDI": {
-          "default": "agent-id-4"
+          "default": "kkakaraparthy@nationaloak.com"
         },
         "Support": {
-          "default": "agent-id-5"
+          "default": "kkakaraparthy@nationaloak.com"
         },
         "Field Service": {
-          "default": "agent-id-6"
+          "default": "kkakaraparthy@nationaloak.com"
         }
       },
       "status_sync_map": {}
@@ -77,7 +77,7 @@
     {
       "dept_id": "fpna",
       "name": "FP&A",
-      "agent_ids": [],
+      "agent_ids": [16004343188],
       "jira_project_key": "FPA",
       "jira_issue_type_id": "10001",
       "jira_board_id": 682,
@@ -87,23 +87,23 @@
       "sync_attachments": true,
       "assignment_map": {
         "Dashboards - PowerBI": {
-          "Connection Issue": "varun@example.com",
-          "Dashboard Not Refreshing": "varun@example.com",
-          "Data Missing or Wrong": "varun@example.com",
-          "Need Access": "varun@example.com",
-          "Other": "casey.derringer@example.com",
-          "default": "casey.derringer@example.com"
+          "Connection Issue": "varuns@nationaloak.com",
+          "Dashboard Not Refreshing": "varuns@nationaloak.com",
+          "Data Missing or Wrong": "varuns@nationaloak.com",
+          "Need Access": "varuns@nationaloak.com",
+          "Other": "cderringer@nationaloak.com",
+          "default": "cderringer@nationaloak.com"
         },
         "FP&A-Finance": {
-          "Account Salesperson Assignment": "varun@example.com",
-          "Customer Rebate (CGI or Other)": "varun@example.com",
-          "Freedom Program - Smartsheet": "varun@example.com",
-          "SSRS Report Issue": "casey.derringer@example.com",
-          "SSIS Issue": "varun@example.com",
-          "Update to Manager Hierarchy": "varun@example.com",
-          "Vena": "casey.derringer@example.com",
-          "Other": "casey.derringer@example.com",
-          "default": "casey.derringer@example.com"
+          "Account Salesperson Assignment": "varuns@nationaloak.com",
+          "Customer Rebate (CGI or Other)": "varuns@nationaloak.com",
+          "Freedom Program - Smartsheet": "varuns@nationaloak.com",
+          "SSRS Report Issue": "cderringer@nationaloak.com",
+          "SSIS Issue": "varuns@nationaloak.com",
+          "Update to Manager Hierarchy": "varuns@nationaloak.com",
+          "Vena": "cderringer@nationaloak.com",
+          "Other": "cderringer@nationaloak.com",
+          "default": "cderringer@nationaloak.com"
         }
       },
       "status_sync_map": {
