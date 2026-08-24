@@ -359,6 +359,21 @@ class SyncEngine:
             fields.pop("issuetype", None)
             fields.pop("assignee", None)
 
+            # Preserve existing labels and merge with new ones
+            if "labels" in fields:
+                try:
+                    existing_issue = self.jira.get_issue(issue_key)
+                    existing_labels = getattr(getattr(existing_issue, "fields", None), "labels", []) or []
+                    new_labels = fields.get("labels", [])
+
+                    # Merge labels, avoiding duplicates
+                    merged_labels = list(set(existing_labels + new_labels))
+                    fields["labels"] = merged_labels
+                    logger.debug("Merged labels for %s: existing=%s, new=%s, merged=%s",
+                                issue_key, existing_labels, new_labels, merged_labels)
+                except Exception as ex:
+                    logger.warning("Could not merge labels for %s: %s", issue_key, ex)
+
             # Filter out fields not editable on the Jira issue screen
             try:
                 allowed = self.jira.get_editmeta_fields(issue_key)  # requires helper in clients/jira.py
@@ -675,4 +690,109 @@ class SyncEngine:
         logger.info(
             "Synced %d conversation(s) (with attachments) to %s; last_id=%s",
             len(new_convs), issue_key, last_id
+        )
+
+    # --- Jira → Freshservice status sync --- #
+    def sync_jira_status_to_freshservice(self, jira_issues: List[Any]) -> None:
+        """
+        Synchronize Jira issue status changes back to Freshservice.
+
+        Uses department-specific status_sync_map to determine which Jira statuses
+        should update Freshservice ticket status.
+
+        Args:
+            jira_issues: List of Jira issue objects to check for status updates
+
+        Implementation:
+        - Checks if department has status_sync_map configured
+        - For each Jira issue, extracts FS ticket ID from custom field
+        - Compares Jira status against status_sync_map
+        - Updates Freshservice ticket status if mapping exists
+        - Uses issue property tracking to avoid repeated updates (idempotent)
+        """
+        if not self.department or not self.department.status_sync_map:
+            logger.debug("No status sync map configured for department, skipping Jira → FS status sync")
+            return
+
+        logger.info("Starting Jira → Freshservice status sync for department '%s'", self.department.name)
+        synced_count = 0
+        skipped_count = 0
+
+        for issue in jira_issues:
+            try:
+                issue_key = getattr(issue, "key", None)
+                if not issue_key:
+                    continue
+
+                # Get current Jira status
+                fields = getattr(issue, "fields", None)
+                if not fields:
+                    continue
+
+                status_obj = getattr(fields, "status", None)
+                if not status_obj:
+                    continue
+
+                jira_status = getattr(status_obj, "name", None)
+                if not jira_status:
+                    continue
+
+                # Check if this Jira status should trigger a Freshservice update
+                fs_status_code = self.department.get_fs_status_for_jira_status(jira_status)
+                if not fs_status_code:
+                    continue
+
+                # Extract Freshservice ticket ID from Jira custom field
+                fs_ticket_id_field = self._resolved_ids.get("fs_ticket_number")
+                if not fs_ticket_id_field:
+                    logger.warning("Cannot sync status: fs_ticket_number field not configured")
+                    break
+
+                fs_ticket_id_raw = getattr(fields, fs_ticket_id_field, None)
+                if not fs_ticket_id_raw:
+                    # No FS ticket ID on this Jira issue, skip
+                    continue
+
+                # Convert to int
+                try:
+                    fs_ticket_id = int(fs_ticket_id_raw)
+                except (ValueError, TypeError):
+                    logger.warning("Invalid FS ticket ID '%s' on Jira issue %s", fs_ticket_id_raw, issue_key)
+                    continue
+
+                # Check if we've already synced this status to avoid loops
+                meta = self._get_issue_property(issue_key, "fs_meta") or {}
+                last_synced_status = meta.get("last_synced_jira_status")
+
+                if last_synced_status == jira_status:
+                    # Already synced this status, skip to avoid loops
+                    skipped_count += 1
+                    continue
+
+                # Update Freshservice ticket status
+                logger.info(
+                    "Syncing status: Jira %s (%s) → Freshservice FS-%s (status=%s)",
+                    issue_key, jira_status, fs_ticket_id, fs_status_code
+                )
+
+                try:
+                    result = self.fresh.update_ticket(fs_ticket_id, {"status": int(fs_status_code)})
+                    if result:
+                        # Track that we synced this status
+                        meta["last_synced_jira_status"] = jira_status
+                        meta["fs_ticket_id"] = str(fs_ticket_id)
+                        self._set_issue_property(issue_key, "fs_meta", meta)
+                        synced_count += 1
+                        logger.info("Successfully updated FS-%s status to %s", fs_ticket_id, fs_status_code)
+                    else:
+                        logger.warning("Failed to update FS-%s status (no result returned)", fs_ticket_id)
+                except Exception as ex:
+                    logger.exception("Failed to update FS-%s status: %s", fs_ticket_id, ex)
+
+            except Exception as ex:
+                logger.exception("Error processing Jira issue for status sync: %s", ex)
+
+        logger.info(
+            "Jira → Freshservice status sync completed: synced=%d, skipped=%d",
+            synced_count, skipped_count
         )

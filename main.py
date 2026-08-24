@@ -210,9 +210,17 @@ def main():
             # Run sync for this department
             try:
                 dept_sync_engine.run(dept_tickets, dept_issues)
-                logger.info(f"Completed sync for department '{dept.name}'")
+                logger.info(f"Completed Freshservice → Jira sync for department '{dept.name}'")
             except Exception as ex:
                 logger.exception(f"Failed to sync department '{dept.name}': {ex}")
+
+            # Run reverse sync: Jira → Freshservice status updates
+            if dept.status_sync_map:
+                try:
+                    dept_sync_engine.sync_jira_status_to_freshservice(dept_issues)
+                    logger.info(f"Completed Jira → Freshservice status sync for department '{dept.name}'")
+                except Exception as ex:
+                    logger.exception(f"Failed to sync Jira statuses for department '{dept.name}': {ex}")
 
         logger.info("PRODUCTION MODE sync completed for all departments.")
 

@@ -29,6 +29,8 @@ class Settings(BaseSettings):
 
     # --- Behavior ---
     is_test: bool
+    sync_test_ticket: bool = False  # If False, runs in dry-run mode (no actual API writes)
+    test_ticket_id: Optional[int] = None  # Specific ticket ID to test (overrides fresh_test_ticket)
     sync_always_create: bool
     agents_to_sync: List[int]
     cutoff_period: int

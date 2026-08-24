@@ -432,6 +432,27 @@ class FreshserviceClient:
         ))
 
 
+    # --- Update ticket --- #
+    def update_ticket(self, ticket_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Update a Freshservice ticket.
+
+        Args:
+            ticket_id: Freshservice ticket ID
+            data: Dictionary of fields to update (e.g., {"status": 4})
+
+        Returns:
+            Updated ticket data, or None if update failed
+        """
+        endpoint = f"/api/v2/tickets/{ticket_id}"
+        try:
+            resp = self.create_request(endpoint, "PUT", data=data)
+            payload = resp.json()
+            return payload.get("ticket", payload)
+        except Exception as e:
+            logger.exception("Failed to update Freshservice ticket %s: %s", ticket_id, e)
+            return None
+
     # --- Attachments (binary) --- #
     def download_attachment(self, url: str) -> bytes:
         """

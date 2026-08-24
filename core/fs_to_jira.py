@@ -213,6 +213,40 @@ def render_ticket_details_comment(t: FreshTicket, mapping: Mapping) -> Optional[
 
 
 # --- Issue fields payload --- #
+def _normalize_label(text: Optional[str]) -> Optional[str]:
+    """
+    Normalize a text string into a Jira-compatible label.
+
+    Rules:
+    - Lowercase
+    - Spaces to hyphens
+    - Remove special characters not supported by Jira
+    - Keep only alphanumeric, hyphens, and underscores
+
+    Args:
+        text: Input text to normalize
+
+    Returns:
+        Normalized label string, or None if input is empty
+    """
+    if not text:
+        return None
+
+    # Convert to lowercase and replace spaces with hyphens
+    normalized = text.strip().lower().replace(" ", "-")
+
+    # Remove characters not allowed in Jira labels (keep alphanumeric, hyphen, underscore)
+    normalized = re.sub(r"[^a-z0-9\-_]", "", normalized)
+
+    # Remove consecutive hyphens
+    normalized = re.sub(r"-+", "-", normalized)
+
+    # Remove leading/trailing hyphens
+    normalized = normalized.strip("-")
+
+    return normalized if normalized else None
+
+
 def build_issue_fields(mapping: Mapping, resolved_ids: Dict[str, str], jira_client, t: FreshTicket,
                        project_key: str, issue_type_id: str, department=None) -> Dict[str, Any]:
     """
@@ -248,6 +282,9 @@ def build_issue_fields(mapping: Mapping, resolved_ids: Dict[str, str], jira_clie
     sub = _first(t.sub_category, cf.get("ticket_subcategory"), cf.get("sub_category"),
                  cf.get("user_subcategory"), cf.get("subcategory_name"))
     dept_id = _first(t.department_id, cf.get("department_id"), cf.get("department"))
+
+    # Business Requestor: Use requester name from enriched ticket data (person who created/requested the work)
+    # Falls back to ticket.name if requester object not available
     business_requestor = _first((t.requester.name if t.requester else None), getattr(t, "name", None))
     location_ticket = _first(
         t.location,
@@ -272,6 +309,17 @@ def build_issue_fields(mapping: Mapping, resolved_ids: Dict[str, str], jira_clie
         "summary": f"[FS-{t.id}] {t.subject or ''}".strip(),
         "description": jira_client._to_adf(desc_text),
     }
+
+    # Add subcategory as Jira label
+    labels = []
+    if sub:
+        label = _normalize_label(sub)
+        if label:
+            labels.append(label)
+            logger.debug("FS-%s: Adding subcategory label: %s → %s", t.id, sub, label)
+
+    if labels:
+        fields["labels"] = labels
 
     # Assignee routing: use department-specific map if available, otherwise fall back to global mapping
     assignee_hint = None

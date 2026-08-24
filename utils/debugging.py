@@ -1,5 +1,6 @@
 import logging
-from typing import List, Iterable, Any
+import json
+from typing import List, Iterable, Any, Dict, Optional
 from clients import JiraClient, FreshserviceClient
 from core.sync_engine import SyncEngine
 from utils.config import settings
@@ -153,10 +154,177 @@ def print_category_and_subcategory_id_name_map(
 
 
 
+class DryRunSyncEngine:
+    """
+    Wrapper around SyncEngine that intercepts all write operations and prints them to terminal.
+
+    Used for testing and validation without making actual API changes.
+    Prints JSON payloads that would be sent to Jira/Freshservice.
+    """
+
+    def __init__(self, sync_engine: SyncEngine):
+        self.engine = sync_engine
+        self.logger = logging.getLogger(__name__)
+
+    def _print_json(self, title: str, data: Any) -> None:
+        """Pretty-print JSON data with a title banner."""
+        print("\n" + "="*80)
+        print(f"DRY-RUN: {title}")
+        print("="*80)
+        try:
+            print(json.dumps(data, indent=2, default=str))
+        except Exception:
+            print(str(data))
+        print("="*80 + "\n")
+
+    def create_or_update_issue(self, fs_ticket):
+        """Dry-run version of create_or_update_issue - shows what would be sent."""
+        fs_id = fs_ticket.id
+        issue_key = self.engine._find_issue(fs_id)
+
+        # Enrich ticket
+        try:
+            enriched = self.engine.fresh.get_ticket(fs_id, include_requester=True)
+        except Exception:
+            enriched = None
+
+        t_for_fields = enriched or fs_ticket
+        fields = self.engine._build_fields(t_for_fields)
+
+        if issue_key:
+            print(f"\n🔍 Found existing Jira issue: {issue_key}")
+
+            # Immutable on update
+            fields.pop("project", None)
+            fields.pop("issuetype", None)
+            fields.pop("assignee", None)
+
+            # Preserve labels
+            if "labels" in fields:
+                try:
+                    existing_issue = self.engine.jira.get_issue(issue_key)
+                    existing_labels = getattr(getattr(existing_issue, "fields", None), "labels", []) or []
+                    new_labels = fields.get("labels", [])
+                    merged_labels = list(set(existing_labels + new_labels))
+                    fields["labels"] = merged_labels
+                    print(f"📋 Labels: existing={existing_labels}, new={new_labels}, merged={merged_labels}")
+                except Exception as ex:
+                    self.logger.warning("Could not merge labels for %s: %s", issue_key, ex)
+
+            # Filter via editmeta
+            try:
+                allowed = self.engine.jira.get_editmeta_fields(issue_key)
+            except Exception:
+                allowed = {}
+
+            filtered = {k: v for k, v in fields.items() if (not allowed) or (k in allowed)}
+            dropped = [k for k in fields.keys() if k not in filtered.keys()]
+
+            if dropped:
+                print(f"⚠️  Dropping {len(dropped)} field(s) not on Edit screen: {sorted(dropped)}")
+
+            self._print_json(f"UPDATE Jira Issue {issue_key} (FS-{fs_id})", {
+                "issue_key": issue_key,
+                "fs_ticket_id": fs_id,
+                "operation": "UPDATE",
+                "fields": filtered,
+                "dropped_fields": dropped
+            })
+        else:
+            print(f"\n✨ No existing issue found - would CREATE new issue")
+            self._print_json(f"CREATE Jira Issue (FS-{fs_id})", {
+                "fs_ticket_id": fs_id,
+                "operation": "CREATE",
+                "fields": fields
+            })
+
+            # Show what would happen after creation
+            print(f"📌 After creation, would set issue property 'fs_meta' with tracking data")
+            print(f"📌 Would transition to status: {self.engine.department.jira_default_status if self.engine.department else 'Backlog'}")
+
+        # Show comment/attachment sync plans
+        print(f"\n💬 Would sync comments and attachments for FS-{fs_id}")
+        return issue_key or f"DRY-RUN-KEY-{fs_id}"
+
+    def run(self, tickets, issues):
+        """Dry-run version of run - processes tickets without writing."""
+        print("\n" + "🔥"*40)
+        print("DRY-RUN MODE ENABLED - No actual changes will be made")
+        print("🔥"*80 + "\n")
+
+        for ticket in tickets:
+            try:
+                self.create_or_update_issue(ticket)
+            except Exception as ex:
+                self.logger.exception("Dry-run failed for FS-%s: %s", getattr(ticket, "id", "?"), ex)
+
+        print("\n" + "✅"*40)
+        print("DRY-RUN COMPLETE - Review output above")
+        print("✅"*80 + "\n")
+
+    def sync_jira_status_to_freshservice(self, jira_issues):
+        """Dry-run version of status sync."""
+        if not self.engine.department or not self.engine.department.status_sync_map:
+            print("\n⚠️  No status_sync_map configured - would skip Jira → FS status sync")
+            return
+
+        print("\n🔄 DRY-RUN: Jira → Freshservice Status Sync")
+        print(f"📋 Status map: {self.engine.department.status_sync_map}")
+
+        updates = []
+        for issue in jira_issues:
+            try:
+                issue_key = getattr(issue, "key", None)
+                if not issue_key:
+                    continue
+
+                fields = getattr(issue, "fields", None)
+                if not fields:
+                    continue
+
+                status_obj = getattr(fields, "status", None)
+                jira_status = getattr(status_obj, "name", None) if status_obj else None
+
+                if not jira_status:
+                    continue
+
+                fs_status_code = self.engine.department.get_fs_status_for_jira_status(jira_status)
+                if not fs_status_code:
+                    continue
+
+                fs_ticket_id_field = self.engine._resolved_ids.get("fs_ticket_number")
+                if not fs_ticket_id_field:
+                    continue
+
+                fs_ticket_id_raw = getattr(fields, fs_ticket_id_field, None)
+                if not fs_ticket_id_raw:
+                    continue
+
+                try:
+                    fs_ticket_id = int(fs_ticket_id_raw)
+                except (ValueError, TypeError):
+                    continue
+
+                updates.append({
+                    "jira_issue": issue_key,
+                    "jira_status": jira_status,
+                    "fs_ticket_id": fs_ticket_id,
+                    "fs_status_code": fs_status_code
+                })
+            except Exception:
+                pass
+
+        if updates:
+            self._print_json("Jira → Freshservice Status Updates", updates)
+        else:
+            print("⚠️  No status updates needed\n")
+
+
 def _debug_inspect_ticket_sync(fresh_client: FreshserviceClient,
                                jira_client: JiraClient,
                                sync_engine: SyncEngine,
-                               fs_ticket):
+                               fs_ticket,
+                               dry_run: bool = False):
     """
     Debug a single FreshService ticket's sync process.
 
@@ -164,6 +332,9 @@ def _debug_inspect_ticket_sync(fresh_client: FreshserviceClient,
     - Logs custom fields and requester types
     - Shows department resolution logic
     - Build Jira field payload and compares to EditMeta allow list
+
+    Args:
+        dry_run: If True, shows what would be sent without making API calls
     """
     logger = logging.getLogger(__name__)
 
@@ -299,14 +470,34 @@ def run_test_mode(
     """
     Test mode runner for debugging.
 
+    Behavior controlled by settings:
+    - IS_TEST=true: Enables test mode
+    - SYNC_TEST_TICKET=true: Actually syncs to Jira/Freshservice
+    - SYNC_TEST_TICKET=false: Dry-run mode (shows what would be sent without making changes)
+    - TEST_TICKET_ID: Specific ticket ID to test (optional)
+
     - Prints valid Jira issue types.
     - Dumps Jira fields (name -> id).
-    - Runs a single sync pass on a test ticket.
+    - Runs sync on test ticket (real or dry-run depending on SYNC_TEST_TICKET).
     - Compares payload vs EditMeta.
-    - Runs second sync pass to exercise update path.
     """
     logger = logging.getLogger(__name__)
-    logger.info("Running in TEST MODE")
+
+    # Determine run mode
+    is_dry_run = not settings.sync_test_ticket
+    mode_str = "DRY-RUN" if is_dry_run else "LIVE SYNC"
+
+    print("\n" + "="*80)
+    print(f"TEST MODE: {mode_str}")
+    print("="*80)
+    if is_dry_run:
+        print("⚠️  SYNC_TEST_TICKET=false - No actual API changes will be made")
+        print("    Set SYNC_TEST_TICKET=true to enable actual syncing")
+    else:
+        print("✅ SYNC_TEST_TICKET=true - Will make actual API changes")
+    print("="*80 + "\n")
+
+    logger.info("Running in TEST MODE (%s)", mode_str)
 
 
     # --- Department and Group Mapping Preview --- #
@@ -345,7 +536,10 @@ def run_test_mode(
         pass
 
 
-    test_id = settings.fresh_test_ticket
+    # Determine which ticket to test
+    test_id = settings.test_ticket_id or settings.fresh_test_ticket
+    print(f"\n🎯 Testing with ticket ID: {test_id}")
+
     test_tickets = [t for t in aggregated_tickets if getattr(t, "id", None) == test_id]
     if not test_tickets:
         try:
@@ -358,55 +552,71 @@ def run_test_mode(
     if not test_tickets:
         logger.warning(f"No test ticket found for id={test_id}. Test run will be a no-op.")
         return
+
     for t in test_tickets:
         print(
-            f"Test mode: ticket id={t.id} subject={t.subject} "
+            f"\n📋 Test Ticket: id={t.id} subject={t.subject} "
             f"requester_id={t.requester_id} status={t.status}"
         )
-        _debug_inspect_ticket_sync(fresh_client, jira_client, sync_engine, t)
+        _debug_inspect_ticket_sync(fresh_client, jira_client, sync_engine, t, dry_run=is_dry_run)
         print_all_jira_accounts(jira_client)
 
-    # --- 3) First sync pass (create or update) --- #
-    sync_engine.run(test_tickets, aggregated_issues)
+    # --- 3) Sync pass (real or dry-run) --- #
+    if is_dry_run:
+        print("\n" + "🔥"*40)
+        print("Starting DRY-RUN sync pass...")
+        print("🔥"*80)
+        dry_run_engine = DryRunSyncEngine(sync_engine)
+        dry_run_engine.run(test_tickets, aggregated_issues)
+        dry_run_engine.sync_jira_status_to_freshservice(aggregated_issues)
+    else:
+        print("\n" + "⚡"*40)
+        print("Starting LIVE sync pass...")
+        print("⚡"*80)
+        sync_engine.run(test_tickets, aggregated_issues)
 
-    # --- 4) Inspect EditMeta vs the fields we would send (post-first-pass) --- #
-    try:
-        # Try to find the Jira issue for this FS ticket
-        issue_key = sync_engine._find_issue(test_id)
-        if issue_key:
-            print(f"\nEditMeta check for {issue_key}:")
-            editmeta_fields = jira_client.get_editmeta_fields(issue_key)
-            editable_keys = set(editmeta_fields.keys())
+    # --- 4) Post-sync inspection (only for live sync) --- #
+    if not is_dry_run:
+        try:
+            issue_key = sync_engine._find_issue(test_id)
+            if issue_key:
+                print(f"\n✅ Post-sync: Found Jira issue {issue_key}")
+                print(f"    EditMeta validation check...")
+                editmeta_fields = jira_client.get_editmeta_fields(issue_key)
+                editable_keys = set(editmeta_fields.keys())
 
-            # Rebuild the field payload exactly like the engine would
-            enriched = fresh_client.get_ticket(test_id, include_requester=True) or test_tickets[0]
-            fields_payload = sync_engine._build_fields(enriched)
+                enriched = fresh_client.get_ticket(test_id, include_requester=True) or test_tickets[0]
+                fields_payload = sync_engine._build_fields(enriched)
 
-            # Drop immutable on update (same as engine)
-            fields_payload.pop("project", None)
-            fields_payload.pop("issuetype", None)
+                fields_payload.pop("project", None)
+                fields_payload.pop("issuetype", None)
 
-            would_send = set(fields_payload.keys())
-            allowed = would_send & editable_keys
-            dropped = would_send - editable_keys
+                would_send = set(fields_payload.keys())
+                allowed = would_send & editable_keys
+                dropped = would_send - editable_keys
 
-            print(f"- Would send ({len(would_send)}): {sorted(would_send)}")
-            print(f"- Allowed by Edit screen ({len(allowed)}): {sorted(allowed)}")
-            if dropped:
-                print(f"- DROPPED (not on Edit screen) ({len(dropped)}): {sorted(dropped)}")
+                print(f"    - Would send ({len(would_send)}): {sorted(would_send)}")
+                print(f"    - Allowed by Edit screen ({len(allowed)}): {sorted(allowed)}")
+                if dropped:
+                    print(f"    - DROPPED ({len(dropped)}): {sorted(dropped)}")
+                else:
+                    print("    - DROPPED: none")
+
             else:
-                print("- DROPPED: none (all are on the Edit screen)")
+                print("\n⚠️  EditMeta check skipped: issue not found yet")
+        except Exception as e:
+            logger.exception(f"Failed to compare payload vs EditMeta: {e}")
 
-        else:
-            print("\nEditMeta check skipped: issue not found yet (may be on first create pass).")
-    except Exception as e:
-        logger.exception(f"Failed to compare payload vs EditMeta: {e}")
+        # --- 5) Second pass to exercise update path --- #
+        print("\n⚡ Running second sync pass to test idempotency...")
+        try:
+            refreshed_issues = jira_client.get_board_issues(settings.jira_board_id)
+            sync_engine.run(test_tickets, refreshed_issues)
+            print("✅ Second pass complete")
+        except Exception as e:
+            logger.exception(f"Failed to perform second pass in test mode: {e}")
 
-    # --- 5) Second pass like before (exercise update path/idempotency) --- #
-    try:
-        refreshed_issues = jira_client.get_board_issues(settings.jira_board_id)
-        sync_engine.run(test_tickets, refreshed_issues)
-    except Exception as e:
-        logger.exception(f"Failed to perform second pass in test mode: {e}")
-
-    logger.info("TEST MODE sync completed.")
+    print("\n" + "="*80)
+    print(f"TEST MODE COMPLETE ({mode_str})")
+    print("="*80)
+    logger.info("TEST MODE sync completed (%s)", mode_str)

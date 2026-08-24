@@ -1,4 +1,45 @@
 {
+  "_comment": "Multi-Department Freshservice → Jira Syndication Configuration",
+  "_instructions": [
+    "This file defines department-specific configurations for syncing Freshservice tickets to Jira.",
+    "Each department owns a set of Freshservice agents and routes tickets to a specific Jira project.",
+    "",
+    "TO ADD A NEW DEPARTMENT:",
+    "1. Add a new department object to the 'departments' array below",
+    "2. Fill in all required fields (see schema below)",
+    "3. Configure assignment_map to route tickets by category/subcategory",
+    "4. Optionally configure status_sync_map for reverse (Jira → Freshservice) status updates",
+    "5. No code changes required - the framework is fully data-driven",
+    "",
+    "DEPARTMENT SCHEMA:",
+    "  dept_id (string, required): Unique identifier (e.g., 'wms', 'fpna', 'it')",
+    "  name (string, required): Human-readable department name",
+    "  agent_ids (array of integers, required): Freshservice agent IDs owned by this department",
+    "  jira_project_key (string, required): Jira project key (e.g., 'FRE', 'FPA')",
+    "  jira_issue_type_id (string, required): Jira issue type ID for created issues",
+    "  jira_board_id (integer, required): Jira board ID for querying issues",
+    "  jira_default_status (string, optional): Default status for newly created issues (default: 'Backlog')",
+    "  enabled (boolean, optional): Whether this department is active (default: true)",
+    "  sync_comments (boolean, optional): Enable comment sync (default: true)",
+    "  sync_attachments (boolean, optional): Enable attachment sync (default: true)",
+    "",
+    "ASSIGNMENT_MAP SCHEMA:",
+    "  Maps Freshservice category/subcategory to Jira assignee (email or accountId)",
+    "  Structure: { 'Category Name': { 'Subcategory Name': 'assignee@example.com', 'default': 'fallback@example.com' } }",
+    "  Matching is case-insensitive",
+    "  Use 'default' key for fallback within a category",
+    "",
+    "STATUS_SYNC_MAP SCHEMA (optional):",
+    "  Maps Jira status names to Freshservice status codes for reverse sync (Jira → Freshservice)",
+    "  Structure: { 'Jira Status Name': 'Freshservice Status Code' }",
+    "  Common Freshservice status codes: '2' = Open, '3' = Pending, '4' = Resolved, '5' = Closed",
+    "  Leave empty {} if you don't want Jira status changes to update Freshservice",
+    "",
+    "NOTES:",
+    "  - Agent IDs cannot be duplicated across departments",
+    "  - Subcategories are automatically converted to Jira labels (e.g., 'Dashboard Not Refreshing' → 'dashboard-not-refreshing')",
+    "  - Status sync is idempotent and tracks last synced status to avoid loops"
+  ],
   "departments": [
     {
       "dept_id": "wms",
@@ -45,25 +86,30 @@
       "sync_comments": true,
       "sync_attachments": true,
       "assignment_map": {
-        "FP&A": {
-          "Access Required": "varun@example.com",
-          "Dashboard Not Updating": "varun@example.com",
-          "New Report Request": "casey.derringer@example.com",
-          "Other PowerBI Issue (Please Specify)": "casey.derringer@example.com",
+        "Dashboards - PowerBI": {
+          "Connection Issue": "varun@example.com",
+          "Dashboard Not Refreshing": "varun@example.com",
+          "Data Missing or Wrong": "varun@example.com",
+          "Need Access": "varun@example.com",
+          "Other": "casey.derringer@example.com",
+          "default": "casey.derringer@example.com"
+        },
+        "FP&A-Finance": {
+          "Account Salesperson Assignment": "varun@example.com",
+          "Customer Rebate (CGI or Other)": "varun@example.com",
+          "Freedom Program - Smartsheet": "varun@example.com",
           "SSRS Report Issue": "casey.derringer@example.com",
           "SSIS Issue": "varun@example.com",
-          "Freedom Program - Smartsheet": "varun@example.com",
-          "Customer Rebate (CGI or Other)": "varun@example.com",
-          "Account Salesperson Assignment": "varun@example.com",
           "Update to Manager Hierarchy": "varun@example.com",
-          "Report Issue": "casey.derringer@example.com",
-          "New Report Request": "casey.derringer@example.com",
-          "Other (Please Specify)": "casey.derringer@example.com",
+          "Vena": "casey.derringer@example.com",
+          "Other": "casey.derringer@example.com",
           "default": "casey.derringer@example.com"
         }
       },
       "status_sync_map": {
-        "Done": "4"
+        "Done": "4",
+        "Resolved": "4",
+        "Closed": "5"
       }
     }
   ]
