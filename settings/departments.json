@@ -49,9 +49,9 @@
       "jira_issue_type_id": "10004",
       "jira_board_id": 418,
       "jira_default_status": "Backlog",
-      "enabled": true,
-      "sync_comments": true,
-      "sync_attachments": true,
+      "enabled": false,
+      "sync_comments": false,
+      "sync_attachments": false,
       "assignment_map": {
         "Ecommerce": {
           "default": "kkakaraparthy@nationaloak.com"
@@ -87,20 +87,20 @@
       "sync_attachments": true,
       "assignment_map": {
         "Dashboards - PowerBI": {
-          "Connection Issue": "varuns@nationaloak.com",
-          "Dashboard Not Refreshing": "varuns@nationaloak.com",
-          "Data Missing or Wrong": "varuns@nationaloak.com",
-          "Need Access": "varuns@nationaloak.com",
+          "Connection Issue": "cderringer@nationaloak.com",
+          "Dashboard Not Refreshing": "cderringer@nationaloak.com",
+          "Data Missing or Wrong": "cderringer@nationaloak.com",
+          "Need Access": "cderringer@nationaloak.com",
           "Other": "cderringer@nationaloak.com",
           "default": "cderringer@nationaloak.com"
         },
         "FP&A-Finance": {
-          "Account Salesperson Assignment": "varuns@nationaloak.com",
-          "Customer Rebate (CGI or Other)": "varuns@nationaloak.com",
-          "Freedom Program - Smartsheet": "varuns@nationaloak.com",
+          "Account Salesperson Assignment": "cderringer@nationaloak.com",
+          "Customer Rebate (CGI or Other)": "cderringer@nationaloak.com",
+          "Freedom Program - Smartsheet": "cderringer@nationaloak.com",
           "SSRS Report Issue": "cderringer@nationaloak.com",
-          "SSIS Issue": "varuns@nationaloak.com",
-          "Update to Manager Hierarchy": "varuns@nationaloak.com",
+          "SSIS Issue": "cderringer@nationaloak.com",
+          "Update to Manager Hierarchy": "cderringer@nationaloak.com",
           "Vena": "cderringer@nationaloak.com",
           "Other": "cderringer@nationaloak.com",
           "default": "cderringer@nationaloak.com"

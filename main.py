@@ -54,39 +54,43 @@ def _load_department_registry() -> DepartmentRegistry:
 
     Returns:
         DepartmentRegistry instance
+
+    Raises:
+        FileNotFoundError: If departments.json is not found
+        ValueError: If no valid departments are configured
     """
     logger = logging.getLogger(__name__)
 
-    # Load department configurations from settings
+    # Load department configurations from settings (raises error if file missing or empty)
     dept_configs_raw = settings.load_departments()
-
-    if not dept_configs_raw:
-        logger.warning("No department configurations loaded. Using legacy single-department mode.")
-        # Create a default department from legacy settings
-        default_dept = DepartmentConfig(
-            dept_id="default",
-            name="Default Department",
-            agent_ids=settings.agents_to_sync,
-            jira_project_key=settings.jira_project_key,
-            jira_issue_type_id=settings.jira_issue_type_id,
-            jira_board_id=settings.jira_board_id,
-            jira_default_status=settings.jira_status,
-            assignment_map={},
-            status_sync_map={},
-        )
-        return DepartmentRegistry([default_dept])
 
     # Parse department configurations
     departments = []
+    parse_errors = []
     for dept_data in dept_configs_raw:
         try:
             dept = DepartmentConfig.model_validate(dept_data)
             departments.append(dept)
         except Exception as ex:
-            logger.error("Failed to parse department config %s: %s", dept_data.get("dept_id", "?"), ex)
+            dept_id = dept_data.get("dept_id", "unknown")
+            error_msg = f"Department '{dept_id}': {ex}"
+            parse_errors.append(error_msg)
 
     if not departments:
-        raise ValueError("No valid department configurations found")
+        logger.critical(
+            "FATAL: No valid department configurations found. Errors:\n  - %s",
+            "\n  - ".join(parse_errors)
+        )
+        raise ValueError(
+            f"No valid department configurations could be loaded. "
+            f"Found {len(dept_configs_raw)} department(s) but all failed validation."
+        )
+
+    if parse_errors:
+        logger.warning(
+            "Loaded %d department(s) successfully. %d failed validation and will be skipped:\n  - %s",
+            len(departments), len(parse_errors), "\n  - ".join(parse_errors)
+        )
 
     return DepartmentRegistry(departments)
 

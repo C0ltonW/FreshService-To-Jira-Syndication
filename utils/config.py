@@ -23,18 +23,13 @@ class Settings(BaseSettings):
     jira_domain: str
     jira_email: str
     jira_api_token: str
-    jira_project_key: str
-    jira_issue_type_id: str
-    jira_board_id: int
 
     # --- Behavior ---
     is_test: bool
     sync_test_ticket: bool = False  # If False, runs in dry-run mode (no actual API writes)
     test_ticket_id: Optional[int] = None  # Specific ticket ID to test (overrides fresh_test_ticket)
     sync_always_create: bool
-    agents_to_sync: List[int]
     cutoff_period: int
-    jira_status: str
     allow_closed_tickets: bool
 
     # --- Where to read mappings from ---
@@ -103,26 +98,40 @@ class Settings(BaseSettings):
 
         Returns:
             List of department configuration dictionaries
+
+        Raises:
+            FileNotFoundError: If departments.json is not found
+            ValueError: If no valid departments are configured
         """
         path = Path(self.departments_path)
         if not path.exists():
-            logger.warning(
-                "Department configuration file not found at %s. "
-                "Multi-department mode will not be available.",
+            logger.error(
+                "Department configuration file not found: %s. "
+                "Please create this file with at least one department configuration.",
                 path
             )
-            return []
+            raise FileNotFoundError(
+                f"Department configuration file not found: {path}. "
+                f"Create the file following the schema in settings/departments.json template."
+            )
 
         try:
             with path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
 
             departments = data.get("departments", [])
-            logger.info("Loaded %d department configuration(s) from %s", len(departments), path)
+
+            if not departments:
+                logger.error("No departments defined in %s", path)
+                raise ValueError(f"No departments configured in {path}")
+
+            logger.info("Loaded %d department(s) from %s", len(departments), path)
             return departments
+        except (FileNotFoundError, ValueError):
+            raise
         except Exception as e:
-            logger.error("Failed to load department configurations from %s: %s", path, e)
-            return []
+            logger.error("Failed to parse %s: %s", path, e)
+            raise ValueError(f"Failed to parse department configurations: {e}") from e
 
 
 settings = Settings()
